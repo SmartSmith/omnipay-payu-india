@@ -1,9 +1,17 @@
 {
-    "name": "smartpay/omnipay-payu-india",
+    "name": "smartsmith/omnipay-payu-india",
     "description": "PayU India (payu.in) gateway driver for the Omnipay payment processing library",
     "type": "library",
     "license": "MIT",
-    "keywords": ["cashfree", "omnipay", "payment", "gateway", "payu", "india", "payu.in"],
+    "keywords": [
+        "cashfree",
+        "omnipay",
+        "payment",
+        "gateway",
+        "payu",
+        "india",
+        "payu.in"
+    ],
     "homepage": "https://github.com/SmartSmith/omnipay-payu-india",
     "require": {
         "php": "^8.2",
