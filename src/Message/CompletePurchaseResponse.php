@@ -19,6 +19,13 @@ class CompletePurchaseResponse extends AbstractResponse
         return $this->hashValid && $this->getPayUStatus() === 'success';
     }
 
+    public function isPending(): bool
+    {
+        $status = $this->getPayUStatus();
+
+        return in_array($status, ['pending', 'in progress'], true);
+    }
+
     public function isHashValid(): bool
     {
         return $this->hashValid;

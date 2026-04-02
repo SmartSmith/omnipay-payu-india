@@ -163,4 +163,224 @@ class CompletePurchaseRequestTest extends TestCase
         $this->assertSame('TXN_123', $data['txnid']);
         $this->assertSame('success', $data['status']);
     }
+
+    // --- callbackData parameter tests (server-to-server / forwarded flow) ---
+
+    public function testCallbackDataParameterTakesPriorityOverHttpRequest(): void
+    {
+        // HTTP request has different data — callbackData should win
+        $httpPostData = ['txnid' => 'HTTP_TXN', 'status' => 'failure'];
+        $callbackData = $this->buildValidResponseData('success');
+
+        $httpRequest = new HttpRequest([], $httpPostData);
+        $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
+        $request->initialize([
+            'key' => $this->key,
+            'salt' => $this->salt,
+            'callbackData' => $callbackData,
+        ]);
+
+        $response = $request->send();
+
+        $this->assertTrue($response->isSuccessful());
+        $this->assertTrue($response->isHashValid());
+        $this->assertSame('TXN_123', $response->getTransactionId());
+    }
+
+    public function testCallbackDataParameterWithValidHash(): void
+    {
+        $callbackData = $this->buildValidResponseData('success');
+
+        // Empty HTTP request — only callbackData available
+        $httpRequest = new HttpRequest();
+        $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
+        $request->initialize([
+            'key' => $this->key,
+            'salt' => $this->salt,
+            'callbackData' => $callbackData,
+        ]);
+
+        $response = $request->send();
+
+        $this->assertTrue($response->isSuccessful());
+        $this->assertTrue($response->isHashValid());
+        $this->assertSame('403993715531077182', $response->getTransactionReference());
+        $this->assertSame('TXN_123', $response->getTransactionId());
+        $this->assertSame('CC', $response->getPaymentMode());
+        $this->assertSame('896193988312194700', $response->getBankReference());
+    }
+
+    public function testCallbackDataParameterWithInvalidHash(): void
+    {
+        $callbackData = $this->buildValidResponseData('success');
+        $callbackData['hash'] = 'forged_hash_value';
+
+        $httpRequest = new HttpRequest();
+        $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
+        $request->initialize([
+            'key' => $this->key,
+            'salt' => $this->salt,
+            'callbackData' => $callbackData,
+        ]);
+
+        $response = $request->send();
+
+        $this->assertFalse($response->isSuccessful());
+        $this->assertFalse($response->isHashValid());
+        $this->assertSame('Invalid response hash - possible tampering detected', $response->getMessage());
+    }
+
+    public function testCallbackDataParameterWithFailedStatus(): void
+    {
+        $callbackData = $this->buildValidResponseData('failure');
+
+        $httpRequest = new HttpRequest();
+        $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
+        $request->initialize([
+            'key' => $this->key,
+            'salt' => $this->salt,
+            'callbackData' => $callbackData,
+        ]);
+
+        $response = $request->send();
+
+        $this->assertFalse($response->isSuccessful());
+        $this->assertTrue($response->isHashValid());
+        $this->assertSame('failure', $response->getPayUStatus());
+    }
+
+    public function testCallbackDataParameterWithTamperedAmount(): void
+    {
+        $callbackData = $this->buildValidResponseData('success');
+        $callbackData['amount'] = '999.00'; // Tampered
+
+        $httpRequest = new HttpRequest();
+        $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
+        $request->initialize([
+            'key' => $this->key,
+            'salt' => $this->salt,
+            'callbackData' => $callbackData,
+        ]);
+
+        $response = $request->send();
+
+        $this->assertFalse($response->isSuccessful());
+        $this->assertFalse($response->isHashValid());
+    }
+
+    public function testEmptyCallbackDataFallsBackToHttpRequest(): void
+    {
+        $postData = ['txnid' => 'HTTP_FALLBACK', 'status' => 'success'];
+
+        $httpRequest = new HttpRequest([], $postData);
+        $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
+        $request->initialize([
+            'key' => $this->key,
+            'salt' => $this->salt,
+            // callbackData not set
+        ]);
+
+        $data = $request->getData();
+
+        $this->assertSame('HTTP_FALLBACK', $data['txnid']);
+        $this->assertSame('success', $data['status']);
+    }
+
+    public function testNoDataAvailableThrowsException(): void
+    {
+        $httpRequest = new HttpRequest(); // Empty request
+        $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
+        $request->initialize([
+            'key' => $this->key,
+            'salt' => $this->salt,
+            // No callbackData, empty HTTP request
+        ]);
+
+        $this->expectException(\Omnipay\Common\Exception\InvalidRequestException::class);
+        $this->expectExceptionMessage('No callback data available');
+        $request->getData();
+    }
+
+    public function testCallbackDataWithUdfFields(): void
+    {
+        $hasher = new class { use HashTrait; };
+
+        $callbackData = [
+            'txnid' => 'TXN_CB_UDF',
+            'amount' => '500.00',
+            'productinfo' => 'Premium Plan',
+            'firstname' => 'Alice',
+            'email' => 'alice@test.com',
+            'status' => 'success',
+            'mihpayid' => '99887766',
+            'mode' => 'UPI',
+            'udf1' => 'session_abc',
+            'udf2' => '',
+            'udf3' => '',
+            'udf4' => '',
+            'udf5' => '',
+        ];
+
+        $callbackData['hash'] = $hasher->generateReverseHash(
+            $this->salt, 'success', 'alice@test.com', 'Alice', 'Premium Plan', '500.00', 'TXN_CB_UDF', $this->key,
+            'session_abc', '', '', '', ''
+        );
+
+        $httpRequest = new HttpRequest();
+        $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
+        $request->initialize([
+            'key' => $this->key,
+            'salt' => $this->salt,
+            'callbackData' => $callbackData,
+        ]);
+
+        $response = $request->send();
+
+        $this->assertTrue($response->isSuccessful());
+        $this->assertTrue($response->isHashValid());
+        $this->assertSame('99887766', $response->getTransactionReference());
+        $this->assertSame('UPI', $response->getPaymentMode());
+    }
+
+    // --- isPending() tests ---
+
+    public function testIsPendingWithPendingStatus(): void
+    {
+        $postData = $this->buildValidResponseData('pending');
+        $request = $this->createRequestWithPostData($postData);
+        $response = $request->send();
+
+        $this->assertFalse($response->isSuccessful());
+        $this->assertTrue($response->isPending());
+    }
+
+    public function testIsPendingWithInProgressStatus(): void
+    {
+        $postData = $this->buildValidResponseData('in progress');
+        $request = $this->createRequestWithPostData($postData);
+        $response = $request->send();
+
+        $this->assertFalse($response->isSuccessful());
+        $this->assertTrue($response->isPending());
+    }
+
+    public function testIsNotPendingWithSuccessStatus(): void
+    {
+        $postData = $this->buildValidResponseData('success');
+        $request = $this->createRequestWithPostData($postData);
+        $response = $request->send();
+
+        $this->assertTrue($response->isSuccessful());
+        $this->assertFalse($response->isPending());
+    }
+
+    public function testIsNotPendingWithFailureStatus(): void
+    {
+        $postData = $this->buildValidResponseData('failure');
+        $request = $this->createRequestWithPostData($postData);
+        $response = $request->send();
+
+        $this->assertFalse($response->isSuccessful());
+        $this->assertFalse($response->isPending());
+    }
 }
