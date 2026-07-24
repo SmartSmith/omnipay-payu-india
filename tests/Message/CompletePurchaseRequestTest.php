@@ -168,7 +168,7 @@ class CompletePurchaseRequestTest extends TestCase
 
     public function testCallbackDataParameterTakesPriorityOverHttpRequest(): void
     {
-        // HTTP request has different data — callbackData should win
+        // HTTP request has different data - callbackData should win
         $httpPostData = ['txnid' => 'HTTP_TXN', 'status' => 'failure'];
         $callbackData = $this->buildValidResponseData('success');
 
@@ -191,7 +191,7 @@ class CompletePurchaseRequestTest extends TestCase
     {
         $callbackData = $this->buildValidResponseData('success');
 
-        // Empty HTTP request — only callbackData available
+        // Empty HTTP request - only callbackData available
         $httpRequest = new HttpRequest();
         $request = new CompletePurchaseRequest($this->getHttpClient(), $httpRequest);
         $request->initialize([

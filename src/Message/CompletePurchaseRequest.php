@@ -26,7 +26,7 @@ class CompletePurchaseRequest extends AbstractRequest
     {
         $this->validate('key', 'salt');
 
-        // Explicit callback data takes priority — supports server-to-server verification
+        // Explicit callback data takes priority - supports server-to-server verification
         // where the original HTTP request is not available (e.g., forwarded from another domain).
         $callbackData = $this->getCallbackData();
         if (!empty($callbackData) && is_array($callbackData)) {
