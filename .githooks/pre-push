@@ -14,7 +14,7 @@ die() { echo "pre-push: $*; push refused" >&2; exit 2; }
 cd "$(git rev-parse --show-toplevel)"
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR
 checker=vendor/smartsmith/php-standards/bin/check-once
-[ -x "$checker" ] || die "$checker is missing; run composer update smartsmith/php-standards first"
+[ -x "$checker" ] || die "$checker is missing; run composer update first (no composer.lock is kept)"
 zero=0000000000000000000000000000000000000000
 full=0
 seen=0
@@ -49,7 +49,7 @@ if [ "$full" = 1 ]; then
     # suite (composer test:endpoints); composer test, the whole old suite, runs only in the nightly
     # report, never on a push.
     tester=vendor/smartsmith/php-standards/bin/test-changed
-    [ -x "$tester" ] || die "$tester is missing; run composer update smartsmith/php-standards first"
+    [ -x "$tester" ] || die "$tester is missing; run composer update first (no composer.lock is kept)"
     if [ -z "$land_base" ]; then
         land_base=$(git merge-base "$checked_revision" refs/remotes/origin/main) || die 'cannot resolve branch base'
     fi

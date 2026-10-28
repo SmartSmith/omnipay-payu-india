@@ -149,11 +149,11 @@ composer check:static' COMPOSER_FAILS=check:static
 refuses 'a red related or end-to-end test refuses the landing' "$tmp/main" 1 '' "$(landing "$old")" RELATED_TESTS_FAIL=1
 
 mv "$bin/test-changed" "$tmp/test-changed.away"
-refuses 'a landing with no test-changed refuses' "$tmp/main" 2 'test-changed is missing; run composer update smartsmith/php-standards first' ''
+refuses 'a landing with no test-changed refuses' "$tmp/main" 2 'test-changed is missing; run composer update first (no composer.lock is kept)' ''
 mv "$tmp/test-changed.away" "$bin/test-changed"
 
 mv "$bin/check-once" "$tmp/check-once.away"
-refuses 'a push with no check-once refuses' "$tmp/topic" 2 'check-once is missing; run composer update smartsmith/php-standards first' ''
+refuses 'a push with no check-once refuses' "$tmp/topic" 2 'check-once is missing; run composer update first (no composer.lock is kept)' ''
 mv "$tmp/check-once.away" "$bin/check-once"
 
 # The scripts the tiers run. This package has no static tool of its own, so check:static is Pint over
