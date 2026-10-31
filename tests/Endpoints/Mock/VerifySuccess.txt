@@ -1,0 +1,4 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"status":1,"msg":"1 out of 1 Transactions Fetched Successfully","transaction_details":{"TXN_123":{"mihpayid":"403993715531077182","request_id":"","bank_ref_num":"896193988312194700","amt":"100.00","transaction_amount":"100.00","txnid":"TXN_123","additional_charges":"0.00","productinfo":"Test Product","firstname":"John","bankcode":"UPI","udf1":"order-42","udf2":"","udf3":"","udf4":"","udf5":"","field9":"Success","error_code":"E000","error_Message":"No Error","addedon":"2026-10-31 11:02:44","payment_source":"payu","card_type":"","mode":"UPI","status":"success","unmappedstatus":"captured"}}}

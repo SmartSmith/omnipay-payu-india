@@ -14,8 +14,8 @@ use Symfony\Component\HttpFoundation\Request as HttpRequest;
  * The gateway as a consuming app builds it: SmartPay's GatewayFactory calls
  * `Omnipay::create('PayUIndia', $client)` and initializes it with the merchant's key and salt. The
  * HTTP client is omnipay/tests' mock client, so any request the gateway sent would be recorded
- * there; PayU India's operations send none (purchase is a browser POST to PayU, and the callback is
- * verified by its hash).
+ * there. Only verifyPayment calls a PayU API; purchase is a browser POST to PayU, and the callback
+ * is verified by its hash.
  */
 abstract class EndpointTestCase extends TestCase
 {
@@ -77,6 +77,6 @@ abstract class EndpointTestCase extends TestCase
 
     protected function assertNoHttpRequestSent(): void
     {
-        $this->assertSame([], $this->getMockedRequests(), 'PayU India operations call no PayU API.');
+        $this->assertSame([], $this->getMockedRequests(), 'This operation calls no PayU API.');
     }
 }

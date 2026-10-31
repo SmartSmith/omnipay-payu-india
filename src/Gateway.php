@@ -3,8 +3,9 @@
 namespace Omnipay\PayUIndia;
 
 use Omnipay\Common\AbstractGateway;
-use Omnipay\PayUIndia\Message\PurchaseRequest;
 use Omnipay\PayUIndia\Message\CompletePurchaseRequest;
+use Omnipay\PayUIndia\Message\PurchaseRequest;
+use Omnipay\PayUIndia\Message\VerifyPaymentRequest;
 
 class Gateway extends AbstractGateway
 {
@@ -16,8 +17,8 @@ class Gateway extends AbstractGateway
     public function getDefaultParameters(): array
     {
         return [
-            'key'      => '',
-            'salt'     => '',
+            'key' => '',
+            'salt' => '',
             'testMode' => true,
         ];
     }
@@ -50,5 +51,14 @@ class Gateway extends AbstractGateway
     public function completePurchase(array $options = []): CompletePurchaseRequest
     {
         return $this->createRequest(CompletePurchaseRequest::class, $options);
+    }
+
+    /**
+     * Ask PayU how a transaction stands (its verify_payment command), by the txnid the purchase
+     * sent as `transactionId`. It reads and changes nothing.
+     */
+    public function verifyPayment(array $options = []): VerifyPaymentRequest
+    {
+        return $this->createRequest(VerifyPaymentRequest::class, $options);
     }
 }
